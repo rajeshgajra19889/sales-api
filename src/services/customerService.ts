@@ -1,8 +1,17 @@
-import pool from '../db.js';
+import { asc } from 'drizzle-orm';
+import { db } from '../db.js';
+import { customer } from '../db/schema.js';
 
 export async function listCustomers() {
-    const result = await pool.query(
-        'SELECT customer_id, first_name, last_name FROM customer ORDER BY customer_id LIMIT 20'
-    );
-    return result.rows;
+    const rows = await db
+        .select({
+            customer_id: customer.customer_id,
+            first_name: customer.first_name,
+            last_name: customer.last_name
+        })
+        .from(customer)
+        .orderBy(asc(customer.customer_id))
+        .limit(20);
+
+    return rows;
 }

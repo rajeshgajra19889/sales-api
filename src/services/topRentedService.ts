@@ -1,15 +1,19 @@
-import pool from '../db.js';
+import { count, desc, eq } from 'drizzle-orm';
+import { db } from '../db.js';
+import { film, inventory, rental } from '../db/schema.js';
 
 export async function listTopRented() {
-    const result = await pool.query(
-        `SELECT f.title, COUNT(r.rental_id) AS times_rented
-           FROM rental r
-           JOIN inventory i ON r.inventory_id = i.inventory_id
-           JOIN film f ON i.film_id = f.film_id
-          GROUP BY f.title
-          ORDER BY times_rented DESC
-          LIMIT 10`
-    );
+    const rows = await db
+        .select({
+            title: film.title,
+            times_rented: count(rental.rental_id)
+        })
+        .from(rental)
+        .innerJoin(inventory, eq(rental.inventory_id, inventory.inventory_id))
+        .innerJoin(film, eq(inventory.film_id, film.film_id))
+        .groupBy(film.title)
+        .orderBy(desc(count(rental.rental_id)))
+        .limit(10);
 
-    return result.rows;
+    return rows;
 }

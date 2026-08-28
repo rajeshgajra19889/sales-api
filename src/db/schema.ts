@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, smallint, numeric, timestamp, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, smallint, numeric,integer, timestamp, text } from 'drizzle-orm/pg-core';
 
 export const film = pgTable('film', {
     film_id: serial('film_id').primaryKey(),
@@ -8,4 +8,20 @@ export const film = pgTable('film', {
     language_id: smallint('language_id').notNull(),
     rental_rate: numeric('rental_rate', { precision: 4, scale: 2 }).notNull().default('4.99'),
     last_update: timestamp('last_update', { withTimezone: true, mode: 'date' }).notNull().defaultNow()
+});
+
+export const inventory = pgTable('inventory', {
+    inventory_id: serial('inventory_id').primaryKey(),
+    film_id: integer('film_id').notNull()
+});
+
+export const rental = pgTable('rental', {
+    rental_id: serial('rental_id').primaryKey(),
+    inventory_id: integer('inventory_id').notNull()
+});
+
+export const customer = pgTable('customer', {
+    customer_id: serial('customer_id').primaryKey(),
+    first_name: varchar('first_name', { length: 45 }).notNull(),
+    last_name: varchar('last_name', { length: 45 }).notNull()
 });
