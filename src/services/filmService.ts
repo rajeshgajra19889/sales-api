@@ -61,8 +61,20 @@ export async function listFilmsPaginated(
 }
 
 export async function getFilmById(id: number) {
-    const rows = await db.select(filmColumns).from(film).where(eq(film.film_id, id)).limit(1);
-    return rows[0];
+    const row = await db.query.film.findFirst({
+        where: eq(film.film_id, id),
+        with: {
+            language: { columns: { name: true } }
+        }
+    });
+    if (!row) return undefined;
+    return {
+        film_id: row.film_id,
+        title: row.title,
+        release_year: row.release_year,
+        rental_rate: row.rental_rate,
+        language_name: row.language?.name?.trim() ?? null,
+    };
 }
 
 
