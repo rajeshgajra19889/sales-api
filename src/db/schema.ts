@@ -56,6 +56,17 @@ export const staff = pgTable('staff', {
     password: varchar('password', { length: 255 }).notNull()
 });
 
+export const actor = pgTable('actor', {
+    actor_id: serial('actor_id').primaryKey(),
+    first_name: varchar('first_name', { length: 45 }).notNull(),
+    last_name: varchar('last_name', { length: 45 }).notNull()
+});
+
+export const filmActor = pgTable('film_actor', {
+    actor_id: integer('actor_id').notNull().references(() => actor.actor_id),
+    film_id: integer('film_id').notNull().references(() => film.film_id)
+}, (t) => [primaryKey({ columns: [t.actor_id, t.film_id] })]);
+
 export const filmRelations = relations(film, ({ one }) => ({
     language: one(language, {
         fields: [film.language_id],
@@ -88,4 +99,13 @@ export const rentalRelations = relations(rental, ({ one }) => ({
 
 export const customerRelations = relations(customer, ({ many }) => ({
     rentals: many(rental)
+}));
+
+export const actorRelations = relations(actor, ({ many }) => ({
+    films: many(filmActor)
+}));
+
+export const filmActorRelations = relations(filmActor, ({ one }) => ({
+    actor: one(actor, { fields: [filmActor.actor_id], references: [actor.actor_id] }),
+    film: one(film, { fields: [filmActor.film_id], references: [film.film_id] })
 }));

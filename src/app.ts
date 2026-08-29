@@ -6,6 +6,7 @@ import customersRoutes from './routes/customers.js';
 import authRoutes from './routes/auth.js';
 import { requireAuth } from './middleware/auth.js';
 import dashboardRoutes from './controllers/dashboardController.js';
+import actorRoutes from './routes/actors.js';
 
 const app = express();
 
@@ -21,5 +22,6 @@ app.use('/films', requireAuth, filmRoutes);
 app.use('/top-rented', requireAuth, topRentedRoutes);
 app.use('/customers', requireAuth, customersRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
+app.use('/actors', requireAuth, actorRoutes);
 
 export default app;
