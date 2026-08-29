@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, serial, varchar, smallint, numeric,integer, timestamp, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, smallint, numeric,integer, timestamp, text, boolean } from 'drizzle-orm/pg-core';
 
 export const film = pgTable('film', {
     film_id: serial('film_id').primaryKey(),
@@ -42,3 +42,14 @@ export const filmRelations = relations(film, ({ one }) => ({
 export const languageRelations = relations(language, ({ many }) => ({
     films: many(film)
 }));
+
+export const staff = pgTable('staff', {
+    staff_id: smallint('staff_id').primaryKey(),
+    first_name: varchar('first_name', { length: 45 }).notNull(),
+    last_name: varchar('last_name', { length: 45 }).notNull(),
+    email: varchar('email', { length: 50 }),
+    store_id: smallint('store_id').notNull(),
+    active: boolean('active').notNull().default(true),
+    username: varchar('username', { length: 16 }).notNull(),
+    password: varchar('password', { length: 255 }).notNull()
+});

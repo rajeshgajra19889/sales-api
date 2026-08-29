@@ -3,6 +3,8 @@ import cors from 'cors';
 import filmRoutes from './routes/films.js';
 import topRentedRoutes from './routes/topRented.js';
 import customersRoutes from './routes/customers.js';
+import authRoutes from './routes/auth.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 
@@ -13,8 +15,9 @@ app.get('/', (req, res) => {
     res.send('Sakila API running. Try /films, /customers, /top-rented');
 });
 
-app.use('/films',filmRoutes);
-app.use('/top-rented',topRentedRoutes);
-app.use('/customers',customersRoutes);
+app.use('/auth', authRoutes);
+app.use('/films', requireAuth, filmRoutes);
+app.use('/top-rented', requireAuth, topRentedRoutes);
+app.use('/customers', requireAuth, customersRoutes);
 
 export default app;
