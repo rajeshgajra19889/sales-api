@@ -1,12 +1,12 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, serial, varchar, smallint, numeric,integer, timestamp, text, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, smallint, numeric, integer, timestamp, text, boolean, primaryKey } from 'drizzle-orm/pg-core';
 
 export const film = pgTable('film', {
     film_id: serial('film_id').primaryKey(),
     title: varchar('title', { length: 255 }).notNull(),
     description: text('description'),
     release_year: smallint('release_year'),
-    language_id: smallint('language_id').notNull().references(()=>language.language_id),
+    language_id: smallint('language_id').notNull().references(() => language.language_id),
     rental_rate: numeric('rental_rate', { precision: 4, scale: 2 }).notNull().default('4.99'),
     last_update: timestamp('last_update', { withTimezone: true, mode: 'date' }).notNull().defaultNow()
 });
@@ -18,7 +18,10 @@ export const inventory = pgTable('inventory', {
 
 export const rental = pgTable('rental', {
     rental_id: serial('rental_id').primaryKey(),
-    inventory_id: integer('inventory_id').notNull()
+    rental_date: timestamp('rental_date', { withTimezone: true, mode: 'date' }).notNull(),
+    inventory_id: integer('inventory_id').notNull(),
+    customer_id: integer('customer_id').notNull(),
+    return_date: timestamp('return_date', { withTimezone: true, mode: 'date' })
 });
 
 export const customer = pgTable('customer', {
@@ -32,16 +35,15 @@ export const language = pgTable('language', {
     name: varchar('name', { length: 20 }).notNull()
 });
 
-export const filmRelations = relations(film, ({ one }) => ({
-    language: one(language, {
-        fields: [film.language_id],
-        references: [language.language_id]
-    })
-}));
+export const category = pgTable('category', {
+    category_id: serial('category_id').primaryKey(),
+    name: varchar('name', { length: 25 }).notNull()
+});
 
-export const languageRelations = relations(language, ({ many }) => ({
-    films: many(film)
-}));
+export const filmCategory = pgTable('film_category', {
+    film_id: integer('film_id').notNull().references(() => film.film_id),
+    category_id: integer('category_id').notNull().references(() => category.category_id)
+}, (t) => [primaryKey({ columns: [t.film_id, t.category_id] })]);
 
 export const staff = pgTable('staff', {
     staff_id: smallint('staff_id').primaryKey(),
@@ -53,3 +55,37 @@ export const staff = pgTable('staff', {
     username: varchar('username', { length: 16 }).notNull(),
     password: varchar('password', { length: 255 }).notNull()
 });
+
+export const filmRelations = relations(film, ({ one }) => ({
+    language: one(language, {
+        fields: [film.language_id],
+        references: [language.language_id]
+    })
+}));
+
+export const languageRelations = relations(language, ({ many }) => ({
+    films: many(film)
+}));
+
+
+export const categoryRelations = relations(category, ({ many }) => ({
+    films: many(filmCategory)
+}));
+
+export const filmCategoryRelations = relations(filmCategory, ({ one }) => ({
+    film: one(film, { fields: [filmCategory.film_id], references: [film.film_id] }),
+    category: one(category, { fields: [filmCategory.category_id], references: [category.category_id] })
+}));
+
+export const inventoryRelations = relations(inventory, ({ one }) => ({
+    film: one(film, { fields: [inventory.film_id], references: [film.film_id] })
+}));
+
+export const rentalRelations = relations(rental, ({ one }) => ({
+    inventory: one(inventory, { fields: [rental.inventory_id], references: [inventory.inventory_id] }),
+    customer: one(customer, { fields: [rental.customer_id], references: [customer.customer_id] })
+}));
+
+export const customerRelations = relations(customer, ({ many }) => ({
+    rentals: many(rental)
+}));
