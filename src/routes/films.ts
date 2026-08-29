@@ -4,7 +4,9 @@ import {
     getFilmsById,
     createFilms,
     updateFilmsById,
-    deleteFilmsById
+    deleteFilmsById,
+    getFilmActors,
+    replaceFilmActorsHandler
 } from '../controllers/filmController.js';
 
 const router = Router();
@@ -14,5 +16,7 @@ router.post('/', createFilms);
 router.get('/:id', getFilmsById);
 router.put('/:id', updateFilmsById);
 router.delete('/:id', deleteFilmsById);
+router.get('/:id/actors', getFilmActors);
+router.put('/:id/actors', replaceFilmActorsHandler);
 
 export default router;

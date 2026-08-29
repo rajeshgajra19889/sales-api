@@ -1,6 +1,6 @@
 import { eq, ilike, asc, desc, count } from 'drizzle-orm';
 import { db } from '../db.js';
-import { film } from '../db/schema.js';
+import { film, filmActor } from '../db/schema.js';
 
 const SORT_COLUMNS = ['film_id', 'title', 'release_year', 'rental_rate'] as const;
 export type SortColumn = (typeof SORT_COLUMNS)[number];
@@ -109,3 +109,26 @@ export async function deleteFilm(id: number) {
     return rows.length;
 }
 
+export async function getActorsForFilm(filmId: number) {
+    const getfilm = await db.select({ id: film.film_id }).from(film).where(eq(film.film_id, filmId)).limit(1);
+    if (!getfilm[0]) return undefined;
+    const rows = await db.query.filmActor.findMany({
+        where: eq(filmActor.film_id, filmId),
+        with: { actor: { columns: { actor_id: true, first_name: true, last_name: true } } }
+    });
+    return rows.map(r => r.actor)
+}
+
+export async function replaceFilmActors(filmId: number, actorIds: number[]) {
+    const getFilm = await db.select({ id: film.film_id }).from(film).where(eq(film.film_id, filmId)).limit(1);
+    if (!getFilm[0]) return undefined;
+    await db.transaction(async tx => {
+        await tx.delete(filmActor).where(eq(filmActor.film_id, filmId));
+        if (actorIds.length > 0) {
+            await tx.insert(filmActor)
+                .values(actorIds.map(actor_id => ({ film_id: filmId, actor_id })))
+                .onConflictDoNothing();
+        }
+    });
+    return getActorsForFilm(filmId);
+}

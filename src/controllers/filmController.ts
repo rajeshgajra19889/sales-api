@@ -6,7 +6,9 @@ import {
     updateFilm,
     deleteFilm,
     FilmInput,
-    SortColumn
+    SortColumn,
+    getActorsForFilm,
+    replaceFilmActors
 } from '../services/filmService.js';
 
 const MAX_PAGE_SIZE = 50;
@@ -97,4 +99,34 @@ export async function deleteFilmsById(req: Request, res: Response) {
         return;
     }
     res.status(204).end();
+}
+
+export async function getFilmActors(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ message: 'Invalid film id' });
+        return;
+    }
+    const actors = await getActorsForFilm(id);
+    if (!actors) {
+        res.status(404).json({ message: 'Film not found' });
+        return;
+    }
+    res.json(actors);
+}
+
+export async function replaceFilmActorsHandler(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const actor_ids = (req.body as Record<string, unknown> | null)?.actor_ids;
+    if (!Array.isArray(actor_ids) || actor_ids.some(x => !Number.isInteger(x))) {
+        res.status(400).json({ error: 'actor_ids must be an array of integers' });
+        return;
+    }
+
+    const cast = await replaceFilmActors(id, [...new Set(actor_ids as number[])]);
+    if (!cast) {
+        res.status(404).json({ error: 'Film not found' });
+        return;
+    }
+    res.json(cast);
 }
