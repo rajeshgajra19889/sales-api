@@ -1,5 +1,11 @@
 # Sakila Sales API
 
+![Node.js](https://img.shields.io/badge/Node.js%2024-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript%207-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express%205-000000?style=for-the-badge&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2018-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black)
+
 A strict-TypeScript REST API over the PostgreSQL **Sakila** sample database — built as a teaching project, structured like production: layered routes → controllers → services, with a typed data layer powered by **Drizzle ORM**.
 
 This is the **backend half of a two-part full-stack project**. Its companion frontend — [Sakila Angular](https://github.com/rajeshgajra19889/sakila-angular) — consumes this API (and nothing else), so the pair form a complete, deployable stack: Angular UI → Express API → PostgreSQL.
