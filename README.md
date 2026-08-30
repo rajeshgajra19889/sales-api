@@ -5,6 +5,7 @@
 ![Express](https://img.shields.io/badge/Express%205-000000?style=for-the-badge&logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2018-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=jsonwebtokens)
 
 A strict-TypeScript REST API over the PostgreSQL **Sakila** sample database — built as a teaching project, structured like production: layered routes → controllers → services, with a typed data layer powered by **Drizzle ORM**.
 
