@@ -8,6 +8,7 @@ import { requireAuth } from './middleware/auth.js';
 import dashboardRoutes from './controllers/dashboardController.js';
 import actorRoutes from './routes/actors.js';
 import rentalRoutes from './routes/rentals.js';
+import inventoryRoutes from './routes/inventory.js';
 
 const app = express();
 
@@ -25,5 +26,6 @@ app.use('/customers', requireAuth, customersRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/actors', requireAuth, actorRoutes);
 app.use('/rentals', requireAuth, rentalRoutes);
+app.use('/inventory', requireAuth, inventoryRoutes);
 
 export default app;
