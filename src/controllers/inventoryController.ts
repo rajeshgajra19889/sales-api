@@ -1,5 +1,13 @@
 import { Request, Response } from 'express';
-import { listInventory, getInventoryDetail, type InventoryQuery, type InventorySort } from '../services/inventoryService.js';
+import {
+    listInventory,
+    getInventoryDetail,
+    createStock,
+    moveCopy,
+    getStockSummary,
+    type InventoryQuery,
+    type InventorySort
+} from '../services/inventoryService.js';
 
 const SORTS = ['inventory_id', 'title', 'store_id'] as const;
 
@@ -27,10 +35,67 @@ export async function getInventory(req: Request, res: Response) {
 
 export async function getInventoryItem(req: Request, res: Response) {
     const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+        res.status(400).json({ error: 'inventory id must be an integer' });
+        return;
+    }
     const detail = await getInventoryDetail(id);
     if (!detail) {
         res.status(404).json({ error: 'Inventory item not found' });
         return;
     }
     res.json(detail);
+}
+
+const STOCK_BODY = (body: Record<string, unknown>): body is { film_id: number; store_id: number; qty: number } => {
+    const { film_id, store_id, qty } = body;
+    return typeof film_id === 'number' && Number.isInteger(film_id)
+        && typeof store_id === 'number' && Number.isInteger(store_id)
+        && typeof qty === 'number' && Number.isInteger(qty)
+        && qty >= 1 && qty <= 100;
+};
+
+export async function createInventory(req: Request, res: Response) {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!STOCK_BODY(body)) {
+        res.status(400).json({ error: 'Body must be { film_id, store_id, qty } with qty 1-100' });
+        return;
+    }
+    const result = await createStock({ film_id: body.film_id, store_id: body.store_id, qty: body.qty });
+    if (result === 'film-not-found') {
+        res.status(404).json({ error: 'Film not found' });
+        return;
+    }
+    if (result === 'store-not-found') {
+        res.status(404).json({ error: 'Store not found' });
+        return;
+    }
+    res.status(201).json(result);
+}
+
+export async function moveInventoryCopy(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!Number.isInteger(id) || !Number.isInteger(body.store_id)) {
+        res.status(400).json({ error: 'Path id and body { store_id } must be integers' });
+        return;
+    }
+    const result = await moveCopy(id, body.store_id as number);
+    if (result === 'not-found' || result === 'store-not-found') {
+        res.status(404).json({ error: 'Inventory item or target store not found' });
+        return;
+    }
+    if (result === 'same-store') {
+        res.status(400).json({ error: 'Copy is already at that store' });
+        return;
+    }
+    if (result === 'rented') {
+        res.status(409).json({ error: 'Copy is currently rented out; cannot move it' });
+        return;
+    }
+    res.json(result);
+}
+
+export async function stockSummary(req: Request, res: Response) {
+    res.json(await getStockSummary());
 }
