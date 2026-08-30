@@ -13,7 +13,8 @@ export const film = pgTable('film', {
 
 export const inventory = pgTable('inventory', {
     inventory_id: serial('inventory_id').primaryKey(),
-    film_id: integer('film_id').notNull()
+    film_id: integer('film_id').notNull(),
+    store_id: smallint('store_id').notNull()
 });
 
 export const rental = pgTable('rental', {
@@ -27,7 +28,10 @@ export const rental = pgTable('rental', {
 export const customer = pgTable('customer', {
     customer_id: serial('customer_id').primaryKey(),
     first_name: varchar('first_name', { length: 45 }).notNull(),
-    last_name: varchar('last_name', { length: 45 }).notNull()
+    last_name: varchar('last_name', { length: 45 }).notNull(),
+    email: varchar('email', { length: 50 }).notNull(),
+    active: boolean('active').notNull().default(true),
+    store_id: smallint('store_id').notNull()
 });
 
 export const language = pgTable('language', {
