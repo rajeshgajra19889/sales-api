@@ -1,6 +1,18 @@
 import { Router } from 'express';
-import { getPaymentHistoryController } from '../controllers/paymentController.js';
+import {
+    getPayments,
+    getPaymentByIdController,
+    createPaymentController,
+    updatePaymentController,
+    deletePaymentController,
+    getPaymentHistoryController
+} from '../controllers/paymentController.js';
 
 const router = Router();
-router.get('/:id', getPaymentHistoryController);
+router.get('/', getPayments);
+router.get('/customer/:id', getPaymentHistoryController);
+router.get('/:id', getPaymentByIdController);
+router.post('/', createPaymentController);
+router.put('/:id', updatePaymentController);
+router.delete('/:id', deletePaymentController);
 export default router;

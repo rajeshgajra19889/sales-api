@@ -167,15 +167,17 @@ export const inventoryRelations = relations(inventory, ({ one, many }) => ({
     holds: many(holds)
 }));
 
-export const rentalRelations = relations(rental, ({ one }) => ({
+export const rentalRelations = relations(rental, ({ one, many }) => ({
     inventory: one(inventory, { fields: [rental.inventory_id], references: [inventory.inventory_id] }),
-    customer: one(customer, { fields: [rental.customer_id], references: [customer.customer_id] })
+    customer: one(customer, { fields: [rental.customer_id], references: [customer.customer_id] }),
+    payments: many(payment)
 }));
 
 export const customerRelations = relations(customer, ({ many, one }) => ({
     rentals: many(rental),
     holds: many(holds),
     waitlist: many(waitlist),
+    payments: many(payment),
     store: one(store, { fields: [customer.store_id], references: [store.store_id] })
 }));
 
@@ -204,9 +206,10 @@ export const storeRelations = relations(store, ({ one, many }) => ({
     address: one(address, { fields: [store.address_id], references: [address.address_id] })
 }));
 
-export const staffRelations = relations(staff, ({ one }) => ({
+export const staffRelations = relations(staff, ({ one, many }) => ({
     store: one(store, { fields: [staff.store_id], references: [store.store_id] }),
-    address: one(address, { fields: [staff.address_id], references: [address.address_id] })
+    address: one(address, { fields: [staff.address_id], references: [address.address_id] }),
+    payments: many(payment)
 }));
 
 export const countryRelations = relations(country, ({ many }) => ({
@@ -223,7 +226,9 @@ export const addressRelations = relations(address, ({ one, many }) => ({
     stores: many(store)
 }));
 
-/*export const paymentRelations = relations(payment, ({ one }) => ({
-    films:  one(city, { fields: [address.city_id], references: [city.city_id] }),
-}));*/
+export const paymentRelations = relations(payment, ({ one }) => ({
+    customer: one(customer, { fields: [payment.customer_id], references: [customer.customer_id] }),
+    staff: one(staff, { fields: [payment.staff_id], references: [staff.staff_id] }),
+    rental: one(rental, { fields: [payment.rental_id], references: [rental.rental_id] })
+}));
 
