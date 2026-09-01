@@ -10,6 +10,7 @@ import {
     getActorsForFilm,
     replaceFilmActors
 } from '../services/filmService.js';
+import { createFilmValidation } from '../validations/film.schema.js';
 
 const MAX_PAGE_SIZE = 50;
 
@@ -26,16 +27,6 @@ function parsePageQuery(req: Request) {
     const sortBy = typeof req.query.sortBy === 'string' ? (req.query.sortBy as SortColumn) : 'film_id';
     const sortOrder: 'asc' | 'desc' = req.query.sortOrder === 'desc' ? 'desc' : 'asc';
     return { page, pageSize, search, sortBy, sortOrder };
-}
-
-function parseFilmInput(body: unknown): FilmInput | null {
-    const b = body as Record<string, unknown> | null;
-    if (!b || typeof b.title !== 'string' || !b.title.trim()) return null;
-    return {
-        title: b.title.trim(),
-        release_year: toNumberOrNull(b.release_year),
-        rental_rate: toNumberOrNull(b.rental_rate)
-    };
 }
 
 export async function getFilms(req: Request, res: Response) {
@@ -59,12 +50,12 @@ export async function getFilmsById(req: Request, res: Response) {
 }
 
 export async function createFilms(req: Request, res: Response) {
-    const input = parseFilmInput(req.body);
-    if (!input) {
-        res.status(400).json({ message: 'title is required' });
+    const result = createFilmValidation.safeParse(req.body);
+    if (!result.success) {
+        res.status(400).json({ message: result.error.issues[0]?.message ?? 'Validation failed' });
         return;
     }
-    const film = await createFilm(input);
+    const film = await createFilm(result.data);
     res.status(201).json(film);
 }
 
@@ -74,12 +65,13 @@ export async function updateFilmsById(req: Request, res: Response) {
         res.status(400).json({ message: 'Invalid film id' });
         return;
     }
-    const input = parseFilmInput(req.body);
-    if (!input) {
-        res.status(400).json({ message: 'title is required' });
+
+    const result = createFilmValidation.safeParse(req.body);
+    if (!result.success) {
+        res.status(400).json({ message: result.error.issues[0]?.message ?? 'Validation failed' });
         return;
     }
-    const film = await updateFilm(id, input);
+    const film = await updateFilm(id, result.data);
     if (!film) {
         res.status(404).json({ message: 'Film not found' });
         return;

@@ -5,6 +5,7 @@ import {
     createStock,
     moveCopy,
     getStockSummary,
+    listRenters,
     type InventoryQuery,
     type InventorySort
 } from '../services/inventoryService.js';
@@ -70,6 +71,10 @@ export async function createInventory(req: Request, res: Response) {
         res.status(404).json({ error: 'Store not found' });
         return;
     }
+    if (result === 'store-inactive') {
+        res.status(409).json({ error: 'Store is inactive; activate it before adding stock' });
+        return;
+    }
     res.status(201).json(result);
 }
 
@@ -89,13 +94,41 @@ export async function moveInventoryCopy(req: Request, res: Response) {
         res.status(400).json({ error: 'Copy is already at that store' });
         return;
     }
+    if (result === 'store-inactive') {
+        res.status(409).json({ error: 'Target store is inactive; activate it before moving copies' });
+        return;
+    }
     if (result === 'rented') {
         res.status(409).json({ error: 'Copy is currently rented out; cannot move it' });
+        return;
+    }
+    if (result === 'held') {
+        res.status(409).json({ error: 'Copy has an active hold; release it before moving' });
         return;
     }
     res.json(result);
 }
 
+export async function inventoryRenters(req: Request, res: Response) {
+    const film_id = Number(req.query.film_id);
+    const store_id = Number(req.query.store_id);
+    if (!Number.isInteger(film_id) || film_id < 1 || !Number.isInteger(store_id) || store_id < 1) {
+        res.status(400).json({ error: 'film_id and store_id query params must be positive integers' });
+        return;
+    }
+    res.json(await listRenters(film_id, store_id));
+}
+
 export async function stockSummary(req: Request, res: Response) {
-    res.json(await getStockSummary());
+    const page = Number(req.query.page ?? 1);
+    const pageSize = Number(req.query.pageSize ?? 10);
+    if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+        res.status(400).json({ error: 'page and pageSize must be integers (page >= 1, pageSize 1-100)' });
+        return;
+    }
+    res.json(await getStockSummary({
+        page,
+        pageSize,
+        search: typeof req.query.search === 'string' ? req.query.search : undefined
+    }));
 }

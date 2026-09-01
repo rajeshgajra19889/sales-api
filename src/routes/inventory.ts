@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import { getInventory, 
+import { getInventory,
          getInventoryItem,
         createInventory,
         moveInventoryCopy,
-        stockSummary } from '../controllers/inventoryController.js';
+        stockSummary,
+        inventoryRenters } from '../controllers/inventoryController.js';
 
 const router = Router();
 
 router.get('/', getInventory);
 router.get('/summary', stockSummary);
+router.get('/renters', inventoryRenters);
 router.get('/:id', getInventoryItem);
 router.post('/', createInventory);
 router.post('/:id/move', moveInventoryCopy);

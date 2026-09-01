@@ -9,6 +9,14 @@ import dashboardRoutes from './controllers/dashboardController.js';
 import actorRoutes from './routes/actors.js';
 import rentalRoutes from './routes/rentals.js';
 import inventoryRoutes from './routes/inventory.js';
+import storesRoutes from './routes/stores.js'
+import holdsRoutes from './routes/holds.js';
+import waitlistRoutes from './routes/waitlist.js';
+import addressesRoutes from './routes/addresses.js';
+import citiesRoutes from './routes/cities.js';
+import staffRoutes from './routes/staff.js';
+import languageRoutes from './routes/languages.js'
+import paymentRoutes from './routes/payments.js';
 
 const app = express();
 
@@ -27,5 +35,13 @@ app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/actors', requireAuth, actorRoutes);
 app.use('/rentals', requireAuth, rentalRoutes);
 app.use('/inventory', requireAuth, inventoryRoutes);
+app.use('/stores', requireAuth, storesRoutes);
+app.use('/holds', requireAuth, holdsRoutes);
+app.use('/waitlist', requireAuth, waitlistRoutes);
+app.use('/addresses', requireAuth, addressesRoutes);
+app.use('/cities', requireAuth, citiesRoutes);
+app.use('/staff', requireAuth, staffRoutes);
+app.use('/languages', requireAuth, languageRoutes);
+app.use('/payments', requireAuth, paymentRoutes);
 
 export default app;

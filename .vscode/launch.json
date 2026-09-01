@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "sales-api debug",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/server.ts",
+            "runtime": "node",
+            "runtimeArgs": ["--import=tsx"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "smartStep": true,
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ],
+            "autoAttachChildProcesses": true
+        }
+    ]
+}

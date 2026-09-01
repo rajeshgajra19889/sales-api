@@ -19,15 +19,29 @@ function orderByExpr(sortBy: SortColumn, sortOrder: 'asc' | 'desc') {
 
 export interface FilmInput {
     title: string;
+    description?: string | null;
     release_year?: number | null;
+    language_id?: number | null;
+    rental_duration?: number | null;
     rental_rate?: string | number | null;
+    length?: number | null;
+    replacement_cost?: string | number | null;
+    rating?: string | null;
+    special_features?: string[] | null;
 }
 
 const filmColumns = {
     film_id: film.film_id,
     title: film.title,
+    description: film.description,
     release_year: film.release_year,
-    rental_rate: film.rental_rate
+    language_id: film.language_id,
+    rental_duration: film.rental_duration,
+    rental_rate: film.rental_rate,
+    length: film.length,
+    replacement_cost: film.replacement_cost,
+    rating: film.rating,
+    special_features: film.special_features
 } as const;
 
 export async function listFilmsPaginated(
@@ -44,13 +58,29 @@ export async function listFilmsPaginated(
         .select({ total: count() })
         .from(film)
         .where(where);
-    const items = await db
-        .select(filmColumns)
-        .from(film)
-        .where(where)
-        .orderBy(orderByExpr(sortBy, sortOrder))
-        .limit(pageSize)
-        .offset(offset);
+    const rows = await db.query.film.findMany({
+        where,
+        with: {
+            language: { columns: { name: true } }
+        },
+        orderBy: orderByExpr(sortBy, sortOrder),
+        limit: pageSize,
+        offset
+    });
+    const items = rows.map(row => ({
+        film_id: row.film_id,
+        title: row.title,
+        description: row.description,
+        release_year: row.release_year,
+        language_id: row.language_id,
+        language_name: row.language?.name?.trim() ?? null,
+        rental_duration: row.rental_duration,
+        rental_rate: row.rental_rate,
+        length: row.length,
+        replacement_cost: row.replacement_cost,
+        rating: row.rating,
+        special_features: row.special_features
+    }));
 
     return {
         items,
@@ -71,9 +101,16 @@ export async function getFilmById(id: number) {
     return {
         film_id: row.film_id,
         title: row.title,
+        description: row.description,
         release_year: row.release_year,
-        rental_rate: row.rental_rate,
+        language_id: row.language_id,
         language_name: row.language?.name?.trim() ?? null,
+        rental_duration: row.rental_duration,
+        rental_rate: row.rental_rate,
+        length: row.length,
+        replacement_cost: row.replacement_cost,
+        rating: row.rating,
+        special_features: row.special_features
     };
 }
 
@@ -83,9 +120,15 @@ export async function createFilm(input: FilmInput) {
         .insert(film)
         .values({
             title: input.title,
+            description: input.description ?? null,
             release_year: input.release_year ?? null,
+            language_id: input.language_id ?? 1,
+            rental_duration: input.rental_duration ?? 3,
             rental_rate: input.rental_rate == null ? '4.99' : String(input.rental_rate),
-            language_id: 1
+            length: input.length ?? null,
+            replacement_cost: input.replacement_cost == null ? '19.99' : String(input.replacement_cost),
+            rating: input.rating ?? 'G',
+            special_features: input.special_features ?? null
         })
         .returning(filmColumns);
     return rows[0];
@@ -95,9 +138,16 @@ export async function updateFilm(id: number, input: FilmInput) {
     const rows = await db
         .update(film)
         .set({
-            title: input.title,
+             title: input.title,
+            description: input.description ?? null,
             release_year: input.release_year ?? null,
+            language_id: input.language_id ?? 1,
+            rental_duration: input.rental_duration ?? 3,
             rental_rate: input.rental_rate == null ? '4.99' : String(input.rental_rate),
+            length: input.length ?? null,
+            replacement_cost: input.replacement_cost == null ? '19.99' : String(input.replacement_cost),
+            rating: input.rating ?? 'G',
+            special_features: input.special_features ?? null
         })
         .where(eq(film.film_id, id))
         .returning(filmColumns);
