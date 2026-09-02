@@ -37,7 +37,7 @@ const SORTABLE: Record<CustomerSort, PgColumn> = {
 
 export async function listCustomers(q: CustomerQuery) {
     const page = Math.max(q.page, 1);
-    const pageSize = Math.min(Math.max(q.pageSize, 1), 100);
+    const pageSize = Math.min(Math.max(q.pageSize, 1), 1000);
     const column = SORTABLE[q.sortBy ?? 'customer_id'] ?? SORTABLE.customer_id;
     const like = `%${(q.search ?? '').trim().toLowerCase()}%`;
     const where = q.search?.trim()

@@ -10,8 +10,8 @@ function parsePage(query: Record<string, unknown>, res: Response): {
 } | null {
     const page = Number(query.page ?? 1);
     const pageSize = Number(query.pageSize ?? 10);
-    if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
-        res.status(400).json({ error: 'page and pageSize must be integers (page >= 1, pageSize 1-100)' });
+    if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 1000) {
+        res.status(400).json({ error: 'page and pageSize must be integers (page >= 1, pageSize 1-1000)' });
         return null;
     }
 
