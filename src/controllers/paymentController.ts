@@ -45,6 +45,32 @@ export async function getPayments(req: Request, res: Response) {
         }
         customerId = n;
     }
+    let storeId: number | undefined;
+    if (req.query.store_id !== undefined) {
+        const n = Number(req.query.store_id);
+        if (!Number.isInteger(n) || n < 1) {
+            res.status(400).json({ error: 'store_id must be a positive integer' });
+            return;
+        }
+        storeId = n;
+    }
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    let dateFrom: string | undefined;
+    let dateTo: string | undefined;
+    if (req.query.dateFrom !== undefined) {
+        if (typeof req.query.dateFrom !== 'string' || !DATE_RE.test(req.query.dateFrom)) {
+            res.status(400).json({ error: 'dateFrom must be a date in YYYY-MM-DD format' });
+            return;
+        }
+        dateFrom = req.query.dateFrom;
+    }
+    if (req.query.dateTo !== undefined) {
+        if (typeof req.query.dateTo !== 'string' || !DATE_RE.test(req.query.dateTo)) {
+            res.status(400).json({ error: 'dateTo must be a date in YYYY-MM-DD format' });
+            return;
+        }
+        dateTo = req.query.dateTo;
+    }
     const sortBy: PaymentSort =
         typeof req.query.sortBy === 'string' && (SORTS as readonly string[]).includes(req.query.sortBy)
             ? req.query.sortBy as PaymentSort
@@ -54,6 +80,9 @@ export async function getPayments(req: Request, res: Response) {
         pageSize,
         search: typeof req.query.search === 'string' ? req.query.search : undefined,
         customerId,
+        storeId,
+        dateFrom,
+        dateTo,
         sortBy,
         sortOrder: req.query.sortOrder === 'desc' ? 'desc' : 'asc'
     }));

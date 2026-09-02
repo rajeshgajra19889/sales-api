@@ -1,4 +1,5 @@
-import { and, asc, count, desc, eq, ilike, max, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, lte, max, or, sql } from 'drizzle-orm';
+import { type SQL } from 'drizzle-orm';
 import { db } from '../db.js';
 import { customer, film, inventory, payment, rental, staff } from '../db/schema.js';
 import { PgColumn } from 'drizzle-orm/pg-core';
@@ -11,6 +12,9 @@ export interface PaymentQuery {
     pageSize: number;
     search?: string;
     customerId?: number;
+    storeId?: number;
+    dateFrom?: string;
+    dateTo?: string;
     sortBy?: PaymentSort;
     sortOrder?: 'asc' | 'desc';
 }
@@ -27,16 +31,21 @@ export async function listPayments(q: PaymentQuery) {
     const pageSize = Math.min(Math.max(q.pageSize, 1), 100);
     const like = `%${(q.search ?? '').trim().toLowerCase()}%`;
 
-    const searchWhere = q.search?.trim()
-        ? or(
+    const conds: SQL[] = [];
+    if (q.search?.trim()) {
+        conds.push(or(
             ilike(customer.first_name, like),
             ilike(customer.last_name, like),
             ilike(film.title, like)
-        )
-        : undefined;
-    const where = q.customerId !== undefined
-        ? and(searchWhere, eq(payment.customer_id, q.customerId))
-        : searchWhere;
+        )!);
+    }
+    if (q.customerId !== undefined) conds.push(eq(payment.customer_id, q.customerId));
+    if (q.storeId !== undefined) {
+        conds.push(or(eq(staff.store_id, q.storeId), eq(inventory.store_id, q.storeId))!);
+    }
+    if (q.dateFrom) conds.push(gte(payment.payment_date, new Date(`${q.dateFrom}T00:00:00`)));
+    if (q.dateTo) conds.push(lte(payment.payment_date, new Date(`${q.dateTo}T23:59:59.999`)));
+    const where = conds.length ? and(...conds) : undefined;
 
     const order = q.sortOrder === 'desc'
         ? desc(SORTABLE[q.sortBy ?? 'payment_id'])
@@ -49,6 +58,7 @@ export async function listPayments(q: PaymentQuery) {
             first_name: customer.first_name,
             last_name: customer.last_name,
             staff_name: sql<string>`${staff.first_name} || ' ' || ${staff.last_name}`,
+            store_id: sql<number>`COALESCE(${staff.store_id}, ${inventory.store_id})`,
             title: film.title,
             amount: payment.amount,
             payment_date: payment.payment_date

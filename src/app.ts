@@ -17,6 +17,7 @@ import citiesRoutes from './routes/cities.js';
 import staffRoutes from './routes/staff.js';
 import languageRoutes from './routes/languages.js'
 import paymentRoutes from './routes/payments.js';
+import revenueRoutes from './routes/revenue.js';
 
 const app = express();
 
@@ -43,5 +44,6 @@ app.use('/cities', requireAuth, citiesRoutes);
 app.use('/staff', requireAuth, staffRoutes);
 app.use('/languages', requireAuth, languageRoutes);
 app.use('/payments', requireAuth, paymentRoutes);
+app.use('/revenue', requireAuth, revenueRoutes);
 
 export default app;
