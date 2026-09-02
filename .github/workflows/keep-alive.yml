@@ -1,0 +1,19 @@
+name: Keep Render awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://sales-api-rnz1.onrender.com/)
+          echo "API responded with $code"
+      - name: Ping frontend
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://sakila-angular.onrender.com/)
+          echo "Frontend responded with $code"
