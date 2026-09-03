@@ -14,6 +14,16 @@ import {
 
 const SORTS = ['inventory_id', 'title', 'store_id'] as const;
 
+function parseStoreId(raw: unknown, res: Response): number | undefined {
+    if (raw === undefined) return undefined;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1) {
+        res.status(400).json({ error: 'store_id must be a positive integer' });
+        return undefined;
+    }
+    return n;
+}
+
 function parseQuery(query: Record<string, unknown>, res: Response): InventoryQuery | null {
     const page = Number(query.page ?? 1);
     const pageSize = Number(query.pageSize ?? 10);
@@ -21,10 +31,13 @@ function parseQuery(query: Record<string, unknown>, res: Response): InventoryQue
         res.status(400).json({ error: 'page and pageSize must be integers (page >= 1, pageSize 1-100)' });
         return null;
     }
+    const storeId = parseStoreId(query.store_id, res);
+    if (storeId === undefined && query.store_id !== undefined) return null;
     return {
         page,
         pageSize,
         search: typeof query.search === 'string' ? query.search : undefined,
+        storeId,
         sortBy: (typeof query.sortBy === 'string' && (SORTS as readonly string[]).includes(query.sortBy) ? query.sortBy : 'inventory_id') as InventorySort,
         sortOrder: query.sortOrder === 'desc' ? 'desc' : 'asc'
     };
@@ -128,10 +141,13 @@ export async function stockSummary(req: Request, res: Response) {
         res.status(400).json({ error: 'page and pageSize must be integers (page >= 1, pageSize 1-100)' });
         return;
     }
+    const storeId = parseStoreId(req.query.store_id, res);
+    if (storeId === undefined && req.query.store_id !== undefined) return;
     res.json(await getStockSummary({
         page,
         pageSize,
-        search: typeof req.query.search === 'string' ? req.query.search : undefined
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
+        storeId
     }));
 }
 

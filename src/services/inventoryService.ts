@@ -10,6 +10,7 @@ export interface InventoryQuery {
     page: number;
     pageSize: number;
     search?: string;
+    storeId?: number;
     sortBy?: InventorySort;
     sortOrder?: 'asc' | 'desc';
 }
@@ -28,7 +29,10 @@ export async function listInventory(q: InventoryQuery) {
     const searchTerm = (q.search ?? '').trim();
     const like = `%${searchTerm}%`;
 
-    const where = searchTerm ? ilike(film.title, like) : undefined;
+    const conds: SQL[] = [];
+    if (searchTerm) conds.push(ilike(film.title, like));
+    if (q.storeId !== undefined) conds.push(eq(inventory.store_id, q.storeId));
+    const where = conds.length ? and(...conds) : undefined;
     const order = q.sortOrder === 'desc'
         ? desc(SORTABLE[q.sortBy ?? 'inventory_id'])
         : asc(SORTABLE[q.sortBy ?? 'inventory_id']);
@@ -225,12 +229,15 @@ export async function listRenters(filmId: number, storeId: number) {
     }));
 }
 
-export async function getStockSummary(q: { page: number; pageSize: number; search?: string }) {
+export async function getStockSummary(q: { page: number; pageSize: number; search?: string; storeId?: number }) {
     const page = Math.max(q.page, 1);
     const pageSize = Math.min(Math.max(q.pageSize, 1), 100);
     const searchTerm = (q.search ?? '').trim();
     const like = `%${searchTerm}%`;
-    const where = searchTerm ? ilike(film.title, like) : undefined;
+    const conds: SQL[] = [];
+    if (searchTerm) conds.push(ilike(film.title, like));
+    if (q.storeId !== undefined) conds.push(eq(inventory.store_id, q.storeId));
+    const where = conds.length ? and(...conds) : undefined;
 
     const grouped = db
         .select({
