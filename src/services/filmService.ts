@@ -1,6 +1,6 @@
 import { eq, ilike, asc, desc, count } from 'drizzle-orm';
 import { db } from '../db.js';
-import { film, filmActor } from '../db/schema.js';
+import { film, filmActor, filmCategory } from '../db/schema.js';
 
 const SORT_COLUMNS = ['film_id', 'title', 'release_year', 'rental_rate'] as const;
 export type SortColumn = (typeof SORT_COLUMNS)[number];
@@ -181,4 +181,28 @@ export async function replaceFilmActors(filmId: number, actorIds: number[]) {
         }
     });
     return getActorsForFilm(filmId);
+}
+
+export async function getCategoriesForFilm(filmId: number) {
+    const getfilm = await db.select({ id: film.film_id }).from(film).where(eq(film.film_id, filmId)).limit(1);
+    if (!getfilm[0]) return undefined;
+    const rows = await db.query.filmCategory.findMany({
+        where: eq(filmCategory.film_id, filmId),
+        with: { category: { columns: { category_id: true, name: true } } }
+    });
+    return rows.map(r => r.category)
+}
+
+export async function replaceFilmCategories(filmId: number, categoryIds: number[]) {
+    const getFilm = await db.select({ id: film.film_id }).from(film).where(eq(film.film_id, filmId)).limit(1);
+    if (!getFilm[0]) return undefined;
+    await db.transaction(async tx => {
+        await tx.delete(filmCategory).where(eq(filmCategory.film_id, filmId));
+        if (categoryIds.length > 0) {
+            await tx.insert(filmCategory)
+                .values(categoryIds.map(category_id => ({ film_id: filmId, category_id })))
+                .onConflictDoNothing();
+        }
+    });
+    return getCategoriesForFilm(filmId);
 }

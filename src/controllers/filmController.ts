@@ -8,7 +8,9 @@ import {
     FilmInput,
     SortColumn,
     getActorsForFilm,
-    replaceFilmActors
+    replaceFilmActors,
+    getCategoriesForFilm,
+    replaceFilmCategories
 } from '../services/filmService.js';
 import { createFilmValidation } from '../validations/film.schema.js';
 
@@ -121,4 +123,34 @@ export async function replaceFilmActorsHandler(req: Request, res: Response) {
         return;
     }
     res.json(cast);
+}
+
+export async function getFilmCategories(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+        res.status(400).json({ message: 'Invalid film id' });
+        return;
+    }
+    const categories = await getCategoriesForFilm(id);
+    if (!categories) {
+        res.status(404).json({ message: 'Film not found' });
+        return;
+    }
+    res.json(categories);
+}
+
+export async function replaceFilmCategoriesHandler(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const category_ids = (req.body as Record<string, unknown> | null)?.category_ids;
+    if (!Array.isArray(category_ids) || category_ids.some(x => !Number.isInteger(x))) {
+        res.status(400).json({ error: 'category_ids must be an array of integers' });
+        return;
+    }
+
+    const cats = await replaceFilmCategories(id, [...new Set(category_ids as number[])]);
+    if (!cats) {
+        res.status(404).json({ error: 'Film not found' });
+        return;
+    }
+    res.json(cats);
 }
