@@ -41,6 +41,33 @@ export async function listAddresses(search?: string) {
         .limit(10);
 }
 
+export async function pagedAddresses(search: string | undefined, page: number, pageSize: number) {
+    const cond = search
+        ? or(
+            ilike(address.address, `%${search}%`),
+            ilike(address.district, `%${search}%`),
+            ilike(city.city, `%${search}%`)
+        )
+        : undefined;
+    const offset = (page - 1) * pageSize;
+    const [items, [{ value: total }]] = await Promise.all([
+        db.select(addressColumns)
+            .from(address)
+            .innerJoin(city, eq(address.city_id, city.city_id))
+            .innerJoin(country, eq(city.country_id, country.country_id))
+            .where(cond)
+            .orderBy(desc(address.address_id))
+            .limit(pageSize)
+            .offset(offset),
+        db.select({ value: count() })
+            .from(address)
+            .innerJoin(city, eq(address.city_id, city.city_id))
+            .innerJoin(country, eq(city.country_id, country.country_id))
+            .where(cond)
+    ]);
+    return { items, total };
+}
+
 export async function getAddress(addressId: number) {
     const rows = await db.select(addressColumns)
         .from(address)
@@ -131,6 +158,34 @@ export async function listCities(search?: string) {
         .where(cond)
         .orderBy(asc(city.city))
         .limit(6);
+}
+
+export async function pagedCities(search: string | undefined, page: number, pageSize: number) {
+    const cond = search
+        ? or(
+            ilike(city.city, `%${search}%`),
+            ilike(country.country, `%${search}%`)
+        )
+        : undefined;
+    const offset = (page - 1) * pageSize;
+    const [items, [{ value: total }]] = await Promise.all([
+        db.select({
+            city_id: city.city_id,
+            name: city.city,
+            country_name: country.country,
+            country_id: city.country_id
+        }).from(city)
+            .innerJoin(country, eq(city.country_id, country.country_id))
+            .where(cond)
+            .orderBy(asc(city.city))
+            .limit(pageSize)
+            .offset(offset),
+        db.select({ value: count() })
+            .from(city)
+            .innerJoin(country, eq(city.country_id, country.country_id))
+            .where(cond)
+    ]);
+    return { items, total };
 }
 
 export interface CityInput {

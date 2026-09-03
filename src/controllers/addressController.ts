@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import {
     createAddress,
     listAddresses,
+    pagedAddresses,
     listCities,
+    pagedCities,
     getAddress,
     updateAddress,
     deleteAddress,
@@ -40,6 +42,17 @@ function parseId(v: string | string[] | undefined): number | null {
     return Number.isInteger(n) && n >= 1 ? n : null;
 }
 
+function parsePagination(req: Request) {
+    const q = req.query;
+    const paged = q.paged === '1' || q.paged === 'true';
+    const page = typeof q.page === 'string' && Number.isInteger(Number(q.page)) && Number(q.page) >= 1 ? Number(q.page) : 1;
+    const maxPageSize = 1000;
+    const pageSize = typeof q.pageSize === 'string' && Number.isInteger(Number(q.pageSize)) && Number(q.pageSize) >= 1
+        ? Math.min(Number(q.pageSize), maxPageSize)
+        : 20;
+    return { paged, page, pageSize };
+}
+
 function addressError(res: Response, reason: string): void {
     switch (reason) {
         case 'city-not-found': res.status(400).json({ error: 'City not found' }); break;
@@ -51,6 +64,12 @@ export async function getAddresses(req: Request, res: Response) {
     const search = typeof req.query.search === 'string' && req.query.search.trim() !== ''
         ? req.query.search.trim().toLowerCase()
         : undefined;
+    const { paged, page, pageSize } = parsePagination(req);
+    if (paged) {
+        const { items, total } = await pagedAddresses(search, page, pageSize);
+        res.json({ items, total, page, pageSize });
+        return;
+    }
     res.json(await listAddresses(search));
 }
 
@@ -97,6 +116,12 @@ export async function getCitiesController(req: Request, res: Response) {
     const search = typeof req.query.search === 'string' && req.query.search.trim() !== ''
         ? req.query.search.trim().toLowerCase()
         : undefined;
+    const { paged, page, pageSize } = parsePagination(req);
+    if (paged) {
+        const { items, total } = await pagedCities(search, page, pageSize);
+        res.json({ items, total, page, pageSize });
+        return;
+    }
     res.json(await listCities(search));
 }
 
