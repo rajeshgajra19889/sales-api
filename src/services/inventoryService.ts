@@ -277,3 +277,39 @@ export async function getStockSummary(q: { page: number; pageSize: number; searc
 
     return { items: rows, total, page, pageSize };
 }
+
+export async function listFilmInventory(filmId: number) {
+    const rows = await db.select({
+        inventory_id: inventory.inventory_id,
+        store_id: inventory.store_id,
+        rented: sql<boolean>`EXISTS(SELECT 1 FROM ${rental} WHERE ${rental.inventory_id} = ${inventory.inventory_id} AND ${rental.return_date} IS NULL)`
+    }).from(inventory)
+        .where(eq(inventory.film_id, filmId))
+        .orderBy(inventory.store_id, inventory.inventory_id);
+
+    return rows.map(r => ({
+        inventory_id: r.inventory_id,
+        store_id: r.store_id,
+        rented: r.rented
+    }));
+}
+
+export type DeleteCopyResult =
+    | { ok: true; deleted: boolean }
+    | { ok: false; reason: 'not-found' | 'rented' };
+
+export async function deleteCopy(id: number): Promise<DeleteCopyResult> {
+    const existing = await db.select({ inventory_id: inventory.inventory_id })
+        .from(inventory)
+        .where(eq(inventory.inventory_id, id))
+        .limit(1);
+    if (existing.length === 0) return { ok: false, reason: 'not-found' };
+
+    const [open] = await db.select({ value: count() }).from(rental)
+        .where(and(eq(rental.inventory_id, id), isNull(rental.return_date)));
+    if (open.value > 0) return { ok: false, reason: 'rented' };
+
+    const deleted = await db.delete(inventory).where(eq(inventory.inventory_id, id))
+        .returning({ inventory_id: inventory.inventory_id });
+    return { ok: true, deleted: deleted !== undefined && deleted.length > 0 };
+}

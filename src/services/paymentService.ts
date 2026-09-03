@@ -85,6 +85,45 @@ export async function listPayments(q: PaymentQuery) {
     return { items: rows, total, page, pageSize };
 }
 
+export async function exportPayments(q: Omit<PaymentQuery, 'page' | 'pageSize'>) {
+    const like = `%${(q.search ?? '').trim().toLowerCase()}%`;
+    const conds: SQL[] = [];
+    if (q.search?.trim()) {
+        conds.push(or(
+            ilike(customer.first_name, like),
+            ilike(customer.last_name, like),
+            ilike(film.title, like)
+        )!);
+    }
+    if (q.customerId !== undefined) conds.push(eq(payment.customer_id, q.customerId));
+    if (q.storeId !== undefined) {
+        conds.push(or(eq(staff.store_id, q.storeId), eq(inventory.store_id, q.storeId))!);
+    }
+    if (q.dateFrom) conds.push(gte(payment.payment_date, new Date(`${q.dateFrom}T00:00:00`)));
+    if (q.dateTo) conds.push(lte(payment.payment_date, new Date(`${q.dateTo}T23:59:59.999`)));
+    const where = conds.length ? and(...conds) : undefined;
+
+    return db.select({
+        payment_id: payment.payment_id,
+        customer_id: payment.customer_id,
+        first_name: customer.first_name,
+        last_name: customer.last_name,
+        staff_name: sql<string>`${staff.first_name} || ' ' || ${staff.last_name}`,
+        store_id: sql<number>`COALESCE(${staff.store_id}, ${inventory.store_id})`,
+        title: film.title,
+        amount: payment.amount,
+        payment_date: payment.payment_date
+    })
+        .from(payment)
+        .innerJoin(customer, eq(payment.customer_id, customer.customer_id))
+        .leftJoin(staff, eq(payment.staff_id, staff.staff_id))
+        .leftJoin(rental, eq(payment.rental_id, rental.rental_id))
+        .leftJoin(inventory, eq(rental.inventory_id, inventory.inventory_id))
+        .leftJoin(film, eq(inventory.film_id, film.film_id))
+        .where(where)
+        .orderBy(payment.payment_id);
+}
+
 export async function getPaymentById(id: number) {
     const row = await db.query.payment.findFirst({
         where: eq(payment.payment_id, id),

@@ -1,7 +1,6 @@
-import { count, desc, eq, sql } from 'drizzle-orm';
+import { count, countDistinct, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db.js';
 import { category, customer, film, filmCategory, inventory, rental } from '../db/schema.js';
-
 export async function getStats() {
     const [films, customers, rentals, stock] = await Promise.all([
         db.select({ value: count() }).from(film),
@@ -59,4 +58,36 @@ export async function getRecentRentals(limit = 8) {
         customer: r.customer ? `${r.customer.first_name} ${r.customer.last_name}` : null,
         film: r.inventory?.film?.title ?? null
     }));
+}
+
+export async function getTopFilms(limit = 5) {
+    const rows = await db
+        .select({
+            title: film.title,
+            times_rented: count(rental.rental_id)
+        })
+        .from(film)
+        .innerJoin(inventory, eq(inventory.film_id, film.film_id))
+        .innerJoin(rental, eq(rental.inventory_id, inventory.inventory_id))
+        .groupBy(film.film_id, film.title)
+        .orderBy(desc(count(rental.rental_id)))
+        .limit(limit);
+    return rows.map(r => ({ title: r.title, times_rented: Number(r.times_rented) }));
+}
+
+export async function getTopFilmsByCategory(limit = 5) {
+    const rows = await db
+        .select({
+            name: category.name,
+            rentals: countDistinct(rental.rental_id)
+        })
+        .from(category)
+        .innerJoin(filmCategory, eq(filmCategory.category_id, category.category_id))
+        .innerJoin(film, eq(film.film_id, filmCategory.film_id))
+        .innerJoin(inventory, eq(inventory.film_id, film.film_id))
+        .innerJoin(rental, eq(rental.inventory_id, inventory.inventory_id))
+        .groupBy(category.name)
+        .orderBy(desc(countDistinct(rental.rental_id)))
+        .limit(limit);
+    return rows.map(r => ({ name: r.name, rentals: r.rentals }));
 }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import {
     listPayments,
+    exportPayments,
     getPaymentById,
     createPayment,
     updatePayment,
@@ -9,6 +10,7 @@ import {
     type PaymentSort
 } from '../services/paymentService.js';
 import { ZodError } from 'zod';
+import { toCsv } from '../utils/csv.js';
 
 const SORTS = ['payment_id', 'amount', 'payment_date', 'customer_id'] as const;
 
@@ -174,4 +176,46 @@ export async function getPaymentHistoryController(req: Request, res: Response) {
         return;
     }
     res.json(await getPaymentHistory(id));
+}
+
+export async function exportPaymentsController(req: Request, res: Response) {
+    let customerId: number | undefined;
+    if (req.query.customer_id !== undefined) {
+        const n = Number(req.query.customer_id);
+        if (!Number.isInteger(n) || n < 1) { res.status(400).json({ error: 'customer_id must be a positive integer' }); return; }
+        customerId = n;
+    }
+    let storeId: number | undefined;
+    if (req.query.store_id !== undefined) {
+        const n = Number(req.query.store_id);
+        if (!Number.isInteger(n) || n < 1) { res.status(400).json({ error: 'store_id must be a positive integer' }); return; }
+        storeId = n;
+    }
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    let dateFrom: string | undefined;
+    let dateTo: string | undefined;
+    if (req.query.dateFrom !== undefined) {
+        if (typeof req.query.dateFrom !== 'string' || !DATE_RE.test(req.query.dateFrom)) { res.status(400).json({ error: 'dateFrom must be a date in YYYY-MM-DD format' }); return; }
+        dateFrom = req.query.dateFrom;
+    }
+    if (req.query.dateTo !== undefined) {
+        if (typeof req.query.dateTo !== 'string' || !DATE_RE.test(req.query.dateTo)) { res.status(400).json({ error: 'dateTo must be a date in YYYY-MM-DD format' }); return; }
+        dateTo = req.query.dateTo;
+    }
+
+    const rows = await exportPayments({
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
+        customerId,
+        storeId,
+        dateFrom,
+        dateTo
+    });
+
+    const csv = toCsv(
+        ['payment_id', 'customer_id', 'customer', 'staff', 'store_id', 'film', 'amount', 'payment_date'],
+        rows.map(r => [r.payment_id, r.customer_id, `${r.first_name} ${r.last_name}`, r.staff_name?.trim() ?? '', r.store_id ?? '', r.title ?? '', Number(r.amount), String(r.payment_date).slice(0, 10)])
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
+    res.send(csv);
 }

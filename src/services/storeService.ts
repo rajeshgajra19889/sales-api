@@ -249,3 +249,67 @@ export async function getStoreStats(id: number) {
         topFilms
     };
 }
+
+export interface StoreComparisonRow {
+    store_id: number;
+    manager: string;
+    address: string;
+    city: string;
+    country: string;
+    inventoryCount: number;
+    staffCount: number;
+    revenue: number;
+    totalRentals: number;
+    activeRentals: number;
+    customersServed: number;
+}
+
+export async function getStoreComparison(): Promise<StoreComparisonRow[]> {
+    const storeRows = await storeBase();
+
+    const [revenueRows, rentalRows, activeRows, customerRows, inventoryRows, staffRows] = await Promise.all([
+        db.select({
+            store_id: inventory.store_id,
+            value: sql<string>`coalesce(sum(${payment.amount}), 0)`
+        }).from(payment)
+            .innerJoin(rental, eq(payment.rental_id, rental.rental_id))
+            .innerJoin(inventory, eq(inventory.inventory_id, rental.inventory_id))
+            .groupBy(inventory.store_id),
+        db.select({ store_id: inventory.store_id, value: count() }).from(rental)
+            .innerJoin(inventory, eq(inventory.inventory_id, rental.inventory_id))
+            .groupBy(inventory.store_id),
+        db.select({ store_id: inventory.store_id, value: count() }).from(rental)
+            .innerJoin(inventory, eq(inventory.inventory_id, rental.inventory_id))
+            .where(isNull(rental.return_date))
+            .groupBy(inventory.store_id),
+        db.select({ store_id: inventory.store_id, value: countDistinct(rental.customer_id) }).from(rental)
+            .innerJoin(inventory, eq(inventory.inventory_id, rental.inventory_id))
+            .groupBy(inventory.store_id),
+        db.select({ store_id: inventory.store_id, value: count() }).from(inventory).groupBy(inventory.store_id),
+        db.select({ store_id: staff.store_id, value: count() }).from(staff).groupBy(staff.store_id)
+    ]);
+
+    const toMap = (rows: { store_id: number; value: unknown }[]) =>
+        new Map(rows.map(r => [r.store_id, Number(r.value)]));
+
+    const revenue = toMap(revenueRows);
+    const rentals = toMap(rentalRows);
+    const active = toMap(activeRows);
+    const customers = toMap(customerRows);
+    const inventoryCount = toMap(inventoryRows);
+    const staffCount = toMap(staffRows);
+
+    return storeRows.map(s => ({
+        store_id: s.store_id,
+        manager: `${s.manager.first_name} ${s.manager.last_name}`,
+        address: `${s.address.address}, ${s.address.district}`,
+        city: s.address.city_name,
+        country: s.address.country_name,
+        inventoryCount: inventoryCount.get(s.store_id) ?? 0,
+        staffCount: staffCount.get(s.store_id) ?? 0,
+        revenue: revenue.get(s.store_id) ?? 0,
+        totalRentals: rentals.get(s.store_id) ?? 0,
+        activeRentals: active.get(s.store_id) ?? 0,
+        customersServed: customers.get(s.store_id) ?? 0
+    }));
+}

@@ -1,6 +1,6 @@
-import { and, asc, count, desc, eq, ilike, max, ne, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, max, ne, or, sql } from 'drizzle-orm';
 import { db } from '../db.js';
-import { address, staff, store } from '../db/schema.js';
+import { address, payment, rental, staff, store } from '../db/schema.js';
 import { PgColumn } from 'drizzle-orm/pg-core';
 import { hashPassword } from '../auth/password.js';
 import { createStaffValidation, updateStaffValidation, type StaffInput, type StaffUpdateInput } from '../validations/staff.schema.js';
@@ -213,4 +213,47 @@ export async function deleteStaff(id: number): Promise<DeleteStaffResult> {
         .where(eq(staff.staff_id, id))
         .returning({ staff_id: staff.staff_id });
     return { ok: true, deleted: deleted !== undefined };
+}
+
+export interface StaffPerformanceRow {
+    staff_id: number;
+    name: string;
+    email: string | null;
+    store_id: number;
+    payments: number;
+    revenue: number;
+    rentals: number;
+}
+
+export async function getStaffPerformance(): Promise<StaffPerformanceRow[]> {
+    const [staffRows, rentalRows] = await Promise.all([
+        db.select({
+            staff_id: staff.staff_id,
+            first_name: staff.first_name,
+            last_name: staff.last_name,
+            email: staff.email,
+            store_id: staff.store_id,
+            payments: count(payment.payment_id),
+            revenue: sql<string>`coalesce(sum(${payment.amount}), 0)`
+        }).from(staff)
+            .leftJoin(payment, eq(payment.staff_id, staff.staff_id))
+            .groupBy(staff.staff_id),
+        db.select({ staff_id: payment.staff_id, value: count() }).from(rental)
+            .innerJoin(payment, eq(payment.rental_id, rental.rental_id))
+            .groupBy(payment.staff_id)
+    ]);
+
+    const rentalMap = new Map(rentalRows.map(r => [r.staff_id, r.value]));
+
+    return staffRows
+        .map(r => ({
+            staff_id: r.staff_id,
+            name: `${r.first_name} ${r.last_name}`,
+            email: r.email,
+            store_id: r.store_id,
+            payments: r.payments,
+            revenue: Number(r.revenue),
+            rentals: rentalMap.get(r.staff_id) ?? 0
+        }))
+        .sort((a, b) => b.revenue - a.revenue);
 }

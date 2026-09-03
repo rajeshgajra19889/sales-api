@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createStore, deleteStore, getStore, getStoreStats, listStores, updateStore } from '../services/storeService.js';
+import { createStore, deleteStore, getStore, getStoreComparison, getStoreStats, listStores, updateStore } from '../services/storeService.js';
 
 interface NewManagerBody {
     first_name: string;
@@ -118,4 +118,8 @@ export async function getStoreStatsController(req: Request, res: Response) {
     const store = await getStore(id);
     if (!store) { settle(res, 404, 'Store not found'); return; }
     res.json(await getStoreStats(id));
+}
+
+export async function getStoreComparisonController(req: Request, res: Response) {
+    res.json(await getStoreComparison());
 }

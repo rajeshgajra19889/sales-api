@@ -6,6 +6,8 @@ import {
     moveCopy,
     getStockSummary,
     listRenters,
+    listFilmInventory,
+    deleteCopy,
     type InventoryQuery,
     type InventorySort
 } from '../services/inventoryService.js';
@@ -131,4 +133,47 @@ export async function stockSummary(req: Request, res: Response) {
         pageSize,
         search: typeof req.query.search === 'string' ? req.query.search : undefined
     }));
+}
+
+export async function getFilmInventory(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+        res.status(400).json({ error: 'film id must be a positive integer' });
+        return;
+    }
+    res.json(await listFilmInventory(id));
+}
+
+export async function deleteInventoryCopy(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+        res.status(400).json({ error: 'inventory id must be a positive integer' });
+        return;
+    }
+    const result = await deleteCopy(id);
+    if (!result.ok) {
+        if (result.reason === 'not-found') { res.status(404).json({ error: 'Inventory item not found' }); return; }
+        if (result.reason === 'rented') { res.status(409).json({ error: 'Copy is currently rented out; cannot delete' }); return; }
+    }
+    res.json({ success: true, message: 'Copy removed from inventory' });
+}
+
+export async function addFilmInventory(req: Request, res: Response) {
+    const filmId = Number(req.params.id);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!Number.isInteger(filmId) || filmId < 1) {
+        res.status(400).json({ error: 'film id must be a positive integer' });
+        return;
+    }
+    const storeId = Number(body.store_id);
+    const qty = Number(body.qty);
+    if (!Number.isInteger(storeId) || !Number.isInteger(qty) || qty < 1 || qty > 100) {
+        res.status(400).json({ error: 'Body must be { store_id, qty } with qty 1-100' });
+        return;
+    }
+    const result = await createStock({ film_id: filmId, store_id: storeId, qty });
+    if (result === 'film-not-found') { res.status(404).json({ error: 'Film not found' }); return; }
+    if (result === 'store-not-found') { res.status(404).json({ error: 'Store not found' }); return; }
+    if (result === 'store-inactive') { res.status(409).json({ error: 'Store is inactive' }); return; }
+    res.status(201).json(result);
 }

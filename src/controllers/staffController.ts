@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { listStaff, getStaffById, createStaff, updateStaff, deleteStaff, type StaffSort } from '../services/staffService.js';
+import { listStaff, getStaffById, createStaff, updateStaff, deleteStaff, getStaffPerformance, type StaffSort } from '../services/staffService.js';
 import { ZodError } from 'zod';
 
 const SORTS = ['staff_id', 'first_name', 'last_name', 'email'] as const;
@@ -30,6 +30,10 @@ export async function getStaff(req: Request, res: Response) {
     const parsed = parseQuery(req.query, res);
     if (!parsed) return;
     res.json(await listStaff(parsed));
+}
+
+export async function getStaffPerformanceController(req: Request, res: Response) {
+    res.json(await getStaffPerformance());
 }
 
 export async function getStaffByIdController(req: Request, res: Response) {
